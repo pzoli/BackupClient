@@ -29,8 +29,10 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.DefaultListSelectionModel;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.ListSelectionModel;
 
 /**
  *
@@ -42,6 +44,7 @@ public class MainFrame extends javax.swing.JFrame {
     private static final CollectionType FILEINFO_LIST_TYPE = TypeFactory.defaultInstance().constructCollectionType(List.class, FileInfo.class);
     private static final CollectionType FOLDERINFO_LIST_TYPE = TypeFactory.defaultInstance().constructCollectionType(List.class, FolderInfo.class);
     private FolderInfo currentBackupFolder;
+    private String prevFolderName;
     private List<ListItem> currentBackupTableContent;
 
     public static String SERVER_URL = "http://localhost:8080";
@@ -97,7 +100,7 @@ public class MainFrame extends javax.swing.JFrame {
 
     private void updateTableModel() throws Exception {
         FileTableModel model = new FileTableModel(currentBackupTableContent);
-        ItemTable.setModel(model);
+        itemTable.setModel(model);
     }
 
     private void restoreFile(FileInfo fileInfo, String restorePath) throws ProtocolException, IOException {
@@ -140,8 +143,25 @@ public class MainFrame extends javax.swing.JFrame {
                 });
             }
             updateTableModel();
+            updateSelection();
         } catch (Exception ex) {
             Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private void updateSelection() {
+        if (prevFolderName != null) {
+            boolean NotFound = true;
+            int idx = -1;
+            for (int i = 0; i < currentBackupTableContent.size() && NotFound; i++) {
+                if (currentBackupTableContent.get(i).getLabel().equals(prevFolderName)) {
+                    idx = i;
+                    NotFound = false;
+                }
+            }
+            if (idx > -1) {
+                itemTable.setRowSelectionInterval(idx, idx);
+            }
         }
     }
 
@@ -156,7 +176,7 @@ public class MainFrame extends javax.swing.JFrame {
 
         jMenuItem1 = new javax.swing.JMenuItem();
         jScrollPane1 = new javax.swing.JScrollPane();
-        ItemTable = new javax.swing.JTable();
+        itemTable = new javax.swing.JTable();
         jMenuBar1 = new javax.swing.JMenuBar();
         mFile = new javax.swing.JMenu();
         mExit = new javax.swing.JMenuItem();
@@ -174,7 +194,7 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
-        ItemTable.setModel(new javax.swing.table.DefaultTableModel(
+        itemTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null}
             },
@@ -190,12 +210,14 @@ public class MainFrame extends javax.swing.JFrame {
                 return types [columnIndex];
             }
         });
-        ItemTable.addKeyListener(new java.awt.event.KeyAdapter() {
+        itemTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+        itemTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+        itemTable.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
-                ItemTableKeyPressed(evt);
+                itemTableKeyPressed(evt);
             }
         });
-        jScrollPane1.setViewportView(ItemTable);
+        jScrollPane1.setViewportView(itemTable);
 
         mFile.setText("File");
 
@@ -283,7 +305,7 @@ public class MainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_mExitActionPerformed
 
     private void mRestoreActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mRestoreActionPerformed
-        int index = ItemTable.getSelectedRow();
+        int index = itemTable.getSelectedRow();
         if (index == -1) {
             return;
         }
@@ -323,15 +345,16 @@ public class MainFrame extends javax.swing.JFrame {
         searchFrame.setVisible(true);
     }//GEN-LAST:event_mSearchActionPerformed
 
-    private void ItemTableKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_ItemTableKeyPressed
+    private void itemTableKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_itemTableKeyPressed
         int code = evt.getKeyCode();
-        if (ItemTable.getSelectedRow() == -1) {
+        if (itemTable.getSelectedRow() == -1) {
             return;
         }
-        int index = ItemTable.getSelectedRow();
+        int index = itemTable.getSelectedRow();
         ListItem selectedValue = currentBackupTableContent.get(index);
         switch (code) {
             case KeyEvent.VK_ENTER:
+                prevFolderName = null;
                 if (selectedValue instanceof PackageInfo) {
                     currentBackupFolder = (PackageInfo) selectedValue;
                     refreshTable();
@@ -341,6 +364,7 @@ public class MainFrame extends javax.swing.JFrame {
                 } else if (selectedValue instanceof FileInfo) {
 
                 } else {
+                    prevFolderName = currentBackupFolder.getFolderName();
                     currentBackupFolder = currentBackupFolder.getParentFolder();
                     refreshTable();
                 }
@@ -349,7 +373,7 @@ public class MainFrame extends javax.swing.JFrame {
             try {
                 int input = JOptionPane.showConfirmDialog(null, "Do you want delete this item?", "Are you sure?", JOptionPane.YES_NO_OPTION);
                 if (input == 0) {
-
+                    prevFolderName = null;
                     if (selectedValue instanceof PackageInfo || selectedValue instanceof FolderInfo) {
                         deleteFolder((FolderInfo) selectedValue);
                         refreshTable();
@@ -364,13 +388,19 @@ public class MainFrame extends javax.swing.JFrame {
             break;
             case KeyEvent.VK_BACK_SPACE:
                 if (currentBackupFolder != null) {
+                    prevFolderName = currentBackupFolder.getFolderName();
                     currentBackupFolder = currentBackupFolder.getParentFolder();
                 }
                 refreshTable();
-                ItemTable.setRowSelectionInterval(0, 0);
+                break;
+            case KeyEvent.VK_HOME:
+                itemTable.setRowSelectionInterval(0, 0);
+                break;
+            case KeyEvent.VK_END:
+                itemTable.setRowSelectionInterval(itemTable.getRowCount() - 1, itemTable.getRowCount() - 1);
                 break;
         }
-    }//GEN-LAST:event_ItemTableKeyPressed
+    }//GEN-LAST:event_itemTableKeyPressed
 
     /**
      * @param args the command line arguments
@@ -408,7 +438,7 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JTable ItemTable;
+    private javax.swing.JTable itemTable;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JMenuItem jMenuItem1;
     private javax.swing.JScrollPane jScrollPane1;
@@ -419,4 +449,5 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JMenuItem mRestore;
     private javax.swing.JMenuItem mSearch;
     // End of variables declaration//GEN-END:variables
+
 }
