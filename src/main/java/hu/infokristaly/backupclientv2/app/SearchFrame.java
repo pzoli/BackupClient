@@ -15,6 +15,7 @@ import hu.infokristaly.backupclientv2.swing.model.SearchTableModel;
 import hu.infokristaly.backupclientv2.utils.HttpClientRequestUtils;
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.io.Reader;
 import java.net.URLEncoder;
@@ -30,7 +31,7 @@ public class SearchFrame extends javax.swing.JDialog {
 
     private ObjectMapper objectMapper = new ObjectMapper();
     private static final CollectionType FILE_LIST_TYPE = TypeFactory.defaultInstance().constructCollectionType(List.class, FileInfo.class);
-    
+    private List<ListItem> result;
     /**
      * Creates new form SearchFrame
      */
@@ -87,6 +88,11 @@ public class SearchFrame extends javax.swing.JDialog {
                 return types [columnIndex];
             }
         });
+        tblResultTable.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                tblResultTableKeyPressed(evt);
+            }
+        });
         jScrollPane1.setViewportView(tblResultTable);
 
         btnClose.setText("Close");
@@ -138,7 +144,7 @@ public class SearchFrame extends javax.swing.JDialog {
     private void btnSearchActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSearchActionPerformed
         try {
             Reader reader = HttpClientRequestUtils.sendGetRequestWithHttpClient(MainFrame.SERVER_URL+ "/fileinfo/findFileByName?name=" + URLEncoder.encode(txtPattern.getText(), "UTF-8"));
-            List<ListItem> result = (List<ListItem>)objectMapper.readValue(reader, FILE_LIST_TYPE);
+            result = (List<ListItem>)objectMapper.readValue(reader, FILE_LIST_TYPE);
             SearchTableModel searchTableModel = new SearchTableModel(result);
             tblResultTable.setModel(searchTableModel);
         } catch (Exception ex) {
@@ -155,6 +161,16 @@ public class SearchFrame extends javax.swing.JDialog {
         this.pack();
         this.setLocationRelativeTo(null);
     }//GEN-LAST:event_formWindowOpened
+
+    private void tblResultTableKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_tblResultTableKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            ListItem row = result.get(tblResultTable.getSelectedRow());
+            ((MainFrame)getParent()).setCurrentBackupFolder(((FileInfo)row).getFolderInfo());
+            ((MainFrame)getParent()).refreshTable();
+            ((MainFrame)getParent()).selectFile(((FileInfo)row).getFileName());
+            dispose();
+        }
+    }//GEN-LAST:event_tblResultTableKeyPressed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnClose;

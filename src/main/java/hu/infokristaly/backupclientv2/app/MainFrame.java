@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.net.ProtocolException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
@@ -44,7 +45,7 @@ public class MainFrame extends javax.swing.JFrame {
     private static final CollectionType FILEINFO_LIST_TYPE = TypeFactory.defaultInstance().constructCollectionType(List.class, FileInfo.class);
     private static final CollectionType FOLDERINFO_LIST_TYPE = TypeFactory.defaultInstance().constructCollectionType(List.class, FolderInfo.class);
     private FolderInfo currentBackupFolder;
-    private String prevFolderName;
+    private String selectedName;
     private List<ListItem> currentBackupTableContent;
 
     public static String SERVER_URL = "http://localhost:8080";
@@ -128,6 +129,10 @@ public class MainFrame extends javax.swing.JFrame {
         }
     }
 
+    void setCurrentBackupFolder(FolderInfo folderInfo) {
+        currentBackupFolder = folderInfo;
+    }
+
     public void refreshTable() {
         try {
             if (currentBackupFolder == null) {
@@ -149,12 +154,17 @@ public class MainFrame extends javax.swing.JFrame {
         }
     }
 
+    public void selectFile(String fileName) {
+        selectedName = fileName;
+        updateSelection();
+    }
+
     private void updateSelection() {
-        if (prevFolderName != null) {
+        if (selectedName != null) {
             boolean NotFound = true;
             int idx = -1;
             for (int i = 0; i < currentBackupTableContent.size() && NotFound; i++) {
-                if (currentBackupTableContent.get(i).getLabel().equals(prevFolderName)) {
+                if (currentBackupTableContent.get(i).getLabel().equals(selectedName)) {
                     idx = i;
                     NotFound = false;
                 }
@@ -354,7 +364,7 @@ public class MainFrame extends javax.swing.JFrame {
         ListItem selectedValue = currentBackupTableContent.get(index);
         switch (code) {
             case KeyEvent.VK_ENTER:
-                prevFolderName = null;
+                selectedName = null;
                 if (selectedValue instanceof PackageInfo) {
                     currentBackupFolder = (PackageInfo) selectedValue;
                     refreshTable();
@@ -364,7 +374,7 @@ public class MainFrame extends javax.swing.JFrame {
                 } else if (selectedValue instanceof FileInfo) {
 
                 } else {
-                    prevFolderName = currentBackupFolder.getFolderName();
+                    selectedName = currentBackupFolder.getFolderName();
                     currentBackupFolder = currentBackupFolder.getParentFolder();
                     refreshTable();
                 }
@@ -373,7 +383,7 @@ public class MainFrame extends javax.swing.JFrame {
             try {
                 int input = JOptionPane.showConfirmDialog(null, "Do you want delete this item?", "Are you sure?", JOptionPane.YES_NO_OPTION);
                 if (input == 0) {
-                    prevFolderName = null;
+                    selectedName = null;
                     if (selectedValue instanceof PackageInfo || selectedValue instanceof FolderInfo) {
                         deleteFolder((FolderInfo) selectedValue);
                         refreshTable();
@@ -388,7 +398,7 @@ public class MainFrame extends javax.swing.JFrame {
             break;
             case KeyEvent.VK_BACK_SPACE:
                 if (currentBackupFolder != null) {
-                    prevFolderName = currentBackupFolder.getFolderName();
+                    selectedName = currentBackupFolder.getFolderName();
                     currentBackupFolder = currentBackupFolder.getParentFolder();
                 }
                 refreshTable();
