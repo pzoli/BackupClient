@@ -12,6 +12,7 @@ public class FileInfo implements ListItem {
     private Long id;
     private String fileName;
     private FolderInfo folderInfo;
+    private String hash;
     private Long size;
 
     public FileInfo() {
@@ -51,6 +52,14 @@ public class FileInfo implements ListItem {
         this.folderInfo = folderInfo;
     }
 
+    public String getHash() {
+        return hash;
+    }
+
+    public void setHash(String hash) {
+        this.hash = hash;
+    }
+
     public Long getSize() {
         return size;
     }
@@ -65,6 +74,7 @@ public class FileInfo implements ListItem {
         int result = 1;
         result = prime * result + ((fileName == null) ? 0 : fileName.hashCode());
         result = prime * result + ((folderInfo == null) ? 0 : folderInfo.hashCode());
+        result = prime * result + ((hash == null) ? 0 : hash.hashCode());
         result = prime * result + ((id == null) ? 0 : id.hashCode());
         result = prime * result + ((size == null) ? 0 : size.hashCode());
         return result;
@@ -94,6 +104,13 @@ public class FileInfo implements ListItem {
                 return false;
             }
         } else if (!folderInfo.equals(other.folderInfo)) {
+            return false;
+        }
+        if (hash == null) {
+            if (other.hash != null) {
+                return false;
+            }
+        } else if (!hash.equals(other.hash)) {
             return false;
         }
         if (id == null) {

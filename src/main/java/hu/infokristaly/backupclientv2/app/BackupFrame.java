@@ -10,11 +10,13 @@ import hu.infokristaly.backupclientv2.model.FileInfo;
 import hu.infokristaly.backupclientv2.model.FolderInfo;
 import hu.infokristaly.backupclientv2.model.PackageInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 
 import hu.infokristaly.backupclientv2.swing.model.PackageInfoComboBoxModel;
 import hu.infokristaly.backupclientv2.swing.renderer.PackageInfoComboBoxRenderer;
+import hu.infokristaly.backupclientv2.utils.HashUtils;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.io.File;
@@ -27,6 +29,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -229,14 +233,28 @@ public class BackupFrame extends javax.swing.JDialog {
         return result;
     }
 
-    public void createFile(Path file, Long folderId) throws IOException {
+    public void createFile(Path file, Long folderId) throws Exception {
         FileInfo fileInfo = new FileInfo();
         fileInfo.setFileName(file.getFileName().toString());
         fileInfo.setFolderInfo(new FolderInfo(folderId));
         fileInfo.setSize(Files.size(file));
 
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        String hash = HashUtils.getFileChecksum(digest, file.toFile());
+        fileInfo.setHash(hash);
+        
         String body = objectMapper.writeValueAsString(fileInfo);
-        HttpClientRequestUtils.sendFileWithMultipartData(MainFrame.SERVER_URL + "/fileinfo/fileupload", body, file.toFile());
+        Reader response = HttpClientRequestUtils.sendPostRequestWithHttpClient(MainFrame.SERVER_URL + "/fileinfo/findByParentFolderIdAndName", body);
+        FileInfo existingFileInfo = null;
+        try {
+            existingFileInfo = objectMapper.readValue(response, FileInfo.class);
+        } catch (MismatchedInputException ex) {
+            
+        }
+        if (existingFileInfo == null || existingFileInfo.getHash() == null || existingFileInfo.getHash().isEmpty() || !hash.equals(existingFileInfo.getHash())) {
+            body = objectMapper.writeValueAsString(fileInfo);
+            HttpClientRequestUtils.sendFileWithMultipartData(MainFrame.SERVER_URL + "/fileinfo/fileupload", body, file.toFile());
+        }
     }
 
     public void refreshPackages() {
